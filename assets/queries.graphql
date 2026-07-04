@@ -1,0 +1,590 @@
+# Linear GraphQL Queries — AppStride Team
+# Usage: Select the appropriate query, substitute variables, and POST to https://api.linear.app/graphql
+# Auth: Authorization: $LINEAR_API_KEY
+
+# ─── VIEWER (current user) ────────────────────────────────────────────────────
+
+query Viewer {
+  viewer {
+    id
+    name
+    email
+    displayName
+    avatarUrl
+    active
+  }
+}
+
+# ─── TEAMS ────────────────────────────────────────────────────────────────────
+
+query Teams {
+  teams {
+    nodes {
+      id
+      name
+      key
+      description
+      members {
+        nodes {
+          id
+          name
+          email
+        }
+      }
+    }
+  }
+}
+
+# ─── TEAM ISSUES (filtered) ──────────────────────────────────────────────────
+
+# Variables: $teamId (required), $first (optional, default 50)
+# Add filter object for state, assignee, priority, label filtering
+query TeamIssues($teamId: String!, $first: Int = 50) {
+  team(id: $teamId) {
+    id
+    name
+    issues(first: $first, orderBy: updatedAt) {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        priorityLabel
+        state {
+          id
+          name
+          type
+        }
+        assignee {
+          id
+          name
+        }
+        labels {
+          nodes {
+            id
+            name
+            color
+          }
+        }
+        project {
+          id
+          name
+        }
+        cycle {
+          id
+          name
+          number
+        }
+        estimate
+        dueDate
+        createdAt
+        updatedAt
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+
+# ─── MY ASSIGNED ISSUES ──────────────────────────────────────────────────────
+
+query MyIssues {
+  viewer {
+    assignedIssues(
+      filter: { state: { type: { nin: ["completed", "canceled"] } } }
+      orderBy: updatedAt
+    ) {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        priorityLabel
+        state {
+          id
+          name
+          type
+        }
+        labels {
+          nodes {
+            name
+            color
+          }
+        }
+        project {
+          name
+        }
+        cycle {
+          name
+          number
+        }
+        dueDate
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+# ─── SINGLE ISSUE DETAIL ─────────────────────────────────────────────────────
+
+# Variables: $issueId — can be UUID or identifier like "APP-123"
+query IssueDetail($issueId: String!) {
+  issue(id: $issueId) {
+    id
+    identifier
+    title
+    description
+    priority
+    priorityLabel
+    estimate
+    dueDate
+    state {
+      id
+      name
+      type
+    }
+    assignee {
+      id
+      name
+      email
+    }
+    creator {
+      name
+    }
+    labels {
+      nodes {
+        id
+        name
+        color
+      }
+    }
+    project {
+      id
+      name
+      state
+    }
+    cycle {
+      id
+      name
+      number
+      startsAt
+      endsAt
+    }
+    parent {
+      id
+      identifier
+      title
+    }
+    children {
+      nodes {
+        id
+        identifier
+        title
+        state {
+          name
+        }
+      }
+    }
+    comments {
+      nodes {
+        id
+        body
+        createdAt
+        user {
+          name
+        }
+      }
+    }
+    attachments {
+      nodes {
+        id
+        title
+        subtitle
+        url
+      }
+    }
+    relations {
+      nodes {
+        type
+        relatedIssue {
+          identifier
+          title
+        }
+      }
+    }
+    createdAt
+    updatedAt
+    url
+  }
+}
+
+# ─── CYCLES (sprints) ────────────────────────────────────────────────────────
+
+query TeamCycles($teamId: String!) {
+  team(id: $teamId) {
+    cycles(orderBy: createdAt) {
+      nodes {
+        id
+        name
+        number
+        startsAt
+        endsAt
+        completedAt
+        progress
+        scopeHistory
+        completedScopeHistory
+        issues {
+          nodes {
+            id
+            identifier
+            title
+            state {
+              name
+              type
+            }
+            assignee {
+              name
+            }
+            priority
+            priorityLabel
+          }
+        }
+      }
+    }
+  }
+}
+
+# ─── ACTIVE CYCLE ────────────────────────────────────────────────────────────
+
+query ActiveCycle($teamId: String!) {
+  team(id: $teamId) {
+    activeCycle {
+      id
+      name
+      number
+      startsAt
+      endsAt
+      progress
+      issues {
+        nodes {
+          id
+          identifier
+          title
+          state {
+            name
+            type
+          }
+          assignee {
+            name
+          }
+          priority
+          priorityLabel
+          estimate
+        }
+      }
+    }
+  }
+}
+
+# ─── PROJECTS ────────────────────────────────────────────────────────────────
+
+query TeamProjects($teamId: String!) {
+  team(id: $teamId) {
+    projects {
+      nodes {
+        id
+        name
+        description
+        state
+        progress
+        startDate
+        targetDate
+        lead {
+          name
+        }
+        members {
+          nodes {
+            name
+          }
+        }
+        issues {
+          nodes {
+            id
+            identifier
+            title
+            state {
+              name
+              type
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# ─── PROJECT ISSUES ──────────────────────────────────────────────────────────
+
+query ProjectIssues($projectId: String!) {
+  project(id: $projectId) {
+    id
+    name
+    state
+    progress
+    issues {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        priorityLabel
+        state {
+          name
+          type
+        }
+        assignee {
+          name
+        }
+        estimate
+        dueDate
+      }
+    }
+  }
+}
+
+# ─── LABELS ──────────────────────────────────────────────────────────────────
+
+query TeamLabels($teamId: String!) {
+  team(id: $teamId) {
+    labels {
+      nodes {
+        id
+        name
+        color
+        description
+      }
+    }
+  }
+}
+
+# Workspace-level labels (shared across teams)
+query WorkspaceLabels {
+  issueLabels(
+    filter: { team: { null: true } }
+  ) {
+    nodes {
+      id
+      name
+      color
+      description
+    }
+  }
+}
+
+# ─── WORKFLOW STATES ─────────────────────────────────────────────────────────
+
+query TeamStates($teamId: String!) {
+  team(id: $teamId) {
+    states {
+      nodes {
+        id
+        name
+        type
+        position
+        color
+      }
+    }
+  }
+}
+
+# ─── TEAM MEMBERS ────────────────────────────────────────────────────────────
+
+query TeamMembers($teamId: String!) {
+  team(id: $teamId) {
+    members {
+      nodes {
+        id
+        name
+        email
+        displayName
+        avatarUrl
+        active
+      }
+    }
+  }
+}
+
+# ─── SEARCH ISSUES ───────────────────────────────────────────────────────────
+
+# Use the issues query with filter for text search
+query SearchIssues($searchTerm: String!) {
+  issueSearch(query: $searchTerm, first: 20) {
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+      }
+      assignee {
+        name
+      }
+      priority
+      priorityLabel
+      labels {
+        nodes {
+          name
+        }
+      }
+      url
+    }
+  }
+}
+
+# ─── FILTERED ISSUES (advanced) ──────────────────────────────────────────────
+
+# Filter by state type (backlog, unstarted, started, completed, canceled)
+query IssuesByState($teamId: String!, $stateType: String!) {
+  team(id: $teamId) {
+    issues(filter: { state: { type: { eq: $stateType } } }) {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        priorityLabel
+        assignee {
+          name
+        }
+        createdAt
+      }
+    }
+  }
+}
+
+# Filter by priority (1=Urgent, 2=High, 3=Medium, 4=Low)
+query HighPriorityIssues($teamId: String!) {
+  team(id: $teamId) {
+    issues(filter: { priority: { lte: 2, neq: 0 } }) {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        priorityLabel
+        state {
+          name
+        }
+        assignee {
+          name
+        }
+      }
+    }
+  }
+}
+
+# Filter by assignee
+query IssuesByAssignee($assigneeEmail: String!) {
+  issues(filter: { assignee: { email: { eq: $assigneeEmail } } }) {
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+      }
+      priority
+      priorityLabel
+    }
+  }
+}
+
+# Filter by label
+query IssuesByLabel($labelName: String!) {
+  issues(filter: { labels: { name: { eq: $labelName } } }) {
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+      }
+      assignee {
+        name
+      }
+      priority
+    }
+  }
+}
+
+# Issues due soon (next 2 weeks)
+query IssuesDueSoon {
+  issues(filter: { dueDate: { lt: "P2W" } }) {
+    nodes {
+      id
+      identifier
+      title
+      dueDate
+      state {
+        name
+      }
+      assignee {
+        name
+      }
+      priority
+      priorityLabel
+    }
+  }
+}
+
+# ─── ISSUE COMMENTS ──────────────────────────────────────────────────────────
+
+query IssueComments($issueId: String!) {
+  issue(id: $issueId) {
+    identifier
+    title
+    comments(orderBy: createdAt) {
+      nodes {
+        id
+        body
+        createdAt
+        updatedAt
+        user {
+          name
+          email
+        }
+      }
+    }
+  }
+}
+
+# ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+query MyNotifications {
+  notifications(first: 20) {
+    nodes {
+      id
+      type
+      createdAt
+      readAt
+      ... on IssueNotification {
+        issue {
+          identifier
+          title
+          state {
+            name
+          }
+        }
+        comment {
+          body
+          user {
+            name
+          }
+        }
+      }
+    }
+  }
+}
